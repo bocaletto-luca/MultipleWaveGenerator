@@ -1,6 +1,7 @@
 # Triple Multiple Wave Generator
 
 **Author:** Bocaletto Luca
+
 **License:** GPLv3
 
 Triple Multiple Wave Generator is a versatile audio generation software that allows you to create and manipulate audio signals with ease. Whether you're a musician, sound designer, or just curious about waveforms, this application provides a user-friendly interface for generating and exploring various types of sound waves.
