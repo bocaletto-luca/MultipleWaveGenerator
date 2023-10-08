@@ -5,6 +5,8 @@
 
 Triple Multiple Wave Generator is a versatile audio generation software that allows you to create and manipulate audio signals with ease. Whether you're a musician, sound designer, or just curious about waveforms, this application provides a user-friendly interface for generating and exploring various types of sound waves.
 
+![Screenshot 2023-10-08 215157](https://github.com/elektronoide/TripleMultipleWaveGenerator/assets/134635227/002380c9-9b65-434d-8f0c-2c88f0854715)
+
 ## Key Features
 
 - **Multi-Generator Support:** Create up to three independent audio generators, each with its own settings.
