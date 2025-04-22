@@ -1,4 +1,4 @@
-# Triple Multiple Wave Generator
+# Triple Wave Generator
 
 **Author:** Bocaletto Luca
 
