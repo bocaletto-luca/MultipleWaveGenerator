@@ -1,6 +1,6 @@
-# Software Name: Triple Multiple Wave Generator
-# Author: Bocaletto Luca
-# License: GPLv3
+# Software Name: Generatore Triplo di Onde Multiple
+# Autore: Bocaletto Luca
+# Licenza: GPLv3
 
 import sys
 import numpy as np
@@ -12,170 +12,198 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPalette, QColor
 
 # Classe per generare l'audio
-class AudioGenerator:
-    def __init__(self, generator_id, frequency=440.0, volume=0.5, waveform='Sine'):
+class GeneratoreAudio:
+    def __init__(self, id_generatore, frequenza=440.0, volume=0.5, forma_onda='Seno'):
         # Inizializza i parametri dell'oggetto
-        self.generator_id = generator_id  # Identificatore del generatore
-        self.frequency = frequency  # Frequenza dell'onda sonora (default: 440 Hz)
-        self.volume = volume  # Volume dell'onda sonora (default: 0.5)
-        self.waveform = waveform  # Tipo di forma d'onda (default: 'Sine')
-        self.audio_stream = None  # Oggetto per la riproduzione dell'audio
-        self.playing = False  # Indica se l'audio è in riproduzione o no
+        self.id_generatore = id_generatore          # Identificatore del generatore
+        self.frequenza = frequenza                  # Frequenza dell'onda sonora (default: 440 Hz)
+        self.volume = volume                        # Volume dell'onda sonora (default: 0.5)
+        self.forma_onda = forma_onda                # Tipo di forma d'onda (default: 'Seno')
+        self.audio_stream = None                    # Oggetto per la riproduzione dell'audio
+        self.playing = False                        # Indica se l'audio è in riproduzione o meno
+
+    # Metodo per generare l'audio per una durata specificata (in secondi)
+    def genera_audio(self, durata):
+        sr = 44100
+        num_samples = int(sr * durata)
+        if self.forma_onda == 'Seno':
+            onda = np.sin(2 * np.pi * np.arange(num_samples) * self.frequenza / sr)
+        elif self.forma_onda == 'Quadrata':
+            onda = np.sign(np.sin(2 * np.pi * np.arange(num_samples) * self.frequenza / sr))
+        elif self.forma_onda == 'Triangolare':
+            onda = np.abs(2 * (np.arange(num_samples) * self.frequenza / sr - 
+                               np.floor(0.5 + np.arange(num_samples) * self.frequenza / sr)))
+        elif self.forma_onda == 'Dente di sega':
+            onda = 2 * (np.arange(num_samples) * self.frequenza / sr - 
+                        np.floor(0.5 + np.arange(num_samples) * self.frequenza / sr))
+        else:
+            onda = np.random.uniform(-1, 1, num_samples)
+
+        dati = (self.volume * onda).astype(np.float32).tobytes()
+        return dati
 
     # Avvia la riproduzione dell'audio
-    def start(self):
+    def avvia(self):
         p = pyaudio.PyAudio()
-        self.audio_stream = p.open(format=pyaudio.paFloat32, channels=1, rate=int(self.frequency * 10), output=True,
-                                   stream_callback=self.callback)
+        # Utilizziamo un sample rate fisso a 44100 per lo stream
+        self.audio_stream = p.open(format=pyaudio.paFloat32, channels=1, rate=44100,
+                                   output=True, stream_callback=self.callback)
         self.playing = True
 
     # Ferma la riproduzione dell'audio
-    def stop(self):
+    def ferma(self):
         if self.audio_stream is not None:
             self.audio_stream.stop_stream()
             self.audio_stream.close()
             self.playing = False
 
-    # Callback per generare i dati dell'audio in base alla forma d'onda selezionata
+    # Callback per generare i dati audio in base alla forma d'onda selezionata
     def callback(self, in_data, frame_count, time_info, status):
-        if self.waveform == 'Sine':
-            waveform = np.sin(2 * np.pi * np.arange(frame_count) * self.frequency / 44100.0)
-        elif self.waveform == 'Square':
-            waveform = np.sign(np.sin(2 * np.pi * np.arange(frame_count) * self.frequency / 44100.0))
-        elif self.waveform == 'Triangle':
-            waveform = np.abs(2 * (np.arange(frame_count) * self.frequency / 44100.0 - np.floor(0.5 + np.arange(frame_count) * self.frequency / 44100.0)))
-        elif self.waveform == 'Sawtooth':
-            waveform = 2 * (np.arange(frame_count) * self.frequency / 44100.0 - np.floor(0.5 + np.arange(frame_count) * self.frequency / 44100.0))
+        sr = 44100
+        if self.forma_onda == 'Seno':
+            onda = np.sin(2 * np.pi * np.arange(frame_count) * self.frequenza / sr)
+        elif self.forma_onda == 'Quadrata':
+            onda = np.sign(np.sin(2 * np.pi * np.arange(frame_count) * self.frequenza / sr))
+        elif self.forma_onda == 'Triangolare':
+            onda = np.abs(2 * (np.arange(frame_count) * self.frequenza / sr - 
+                               np.floor(0.5 + np.arange(frame_count) * self.frequenza / sr)))
+        elif self.forma_onda == 'Dente di sega':
+            onda = 2 * (np.arange(frame_count) * self.frequenza / sr - 
+                        np.floor(0.5 + np.arange(frame_count) * self.frequenza / sr))
         else:
-            waveform = np.random.uniform(-1, 1, frame_count)
+            onda = np.random.uniform(-1, 1, frame_count)
 
-        data = (self.volume * waveform).astype(np.float32).tobytes()
-        return (data, pyaudio.paContinue)
+        dati = (self.volume * onda).astype(np.float32).tobytes()
+        return (dati, pyaudio.paContinue)
 
-# Classe principale dell'app
-class AudioGeneratorApp(QMainWindow):
+# Classe principale dell'applicazione
+class AppGeneratoreAudio(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.generators = []  # Lista dei generatori audio
-        self.init_ui()
-        self.setWindowTitle("Triple Multiple Wave Generator")  # Imposta il titolo della finestra
+        self.generatori = []  # Lista dei generatori audio
+        self.inizializza_ui()
+        self.setWindowTitle("Generatore Triplo di Onde Multiple")
 
     # Inizializza l'interfaccia utente
-    def init_ui(self):
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
+    def inizializza_ui(self):
+        widget_centrale = QWidget()
+        self.setCentralWidget(widget_centrale)
 
         layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        widget_centrale.setLayout(layout)
 
-        # Aggiungi il titolo nella parte superiore con il colore del testo bianco
-        title_label = QLabel("Triple Multiple Wave Generator")
-        title_label.setStyleSheet("font-size: 20px; color: white; padding: 10px; background-color: indigo;")  # Imposta il colore del testo e il padding
-        layout.addWidget(title_label)
+        # Aggiungi il titolo nella parte superiore con testo bianco e sfondo indaco
+        etichetta_titolo = QLabel("Generatore Triplo di Onde Multiple")
+        etichetta_titolo.setStyleSheet("font-size: 20px; color: white; padding: 10px; background-color: indigo;")
+        layout.addWidget(etichetta_titolo)
 
         for i in range(3):
-            generator = AudioGenerator(i)  # Crea un nuovo generatore audio
-            self.generators.append(generator)  # Aggiunge il generatore alla lista
+            generatore = GeneratoreAudio(i)
+            self.generatori.append(generatore)
 
-            label = QLabel(f'Generatore {i + 1}: STOP')  # Etichetta per lo stato del generatore
-            layout.addWidget(label)
-            generator.status_label = label
+            etichetta_stato = QLabel(f"Generatore {i+1}: FERMO")
+            layout.addWidget(etichetta_stato)
+            generatore.status_label = etichetta_stato
 
-            frequency_slider = QSlider(Qt.Horizontal)  # Slider per la frequenza
-            frequency_slider.setMinimum(20)
-            frequency_slider.setMaximum(2000)
-            frequency_slider.valueChanged.connect(lambda val, idx=i: self.update_frequency(idx, val))
-            layout.addWidget(frequency_slider)
+            # Slider per la frequenza
+            slider_frequenza = QSlider(Qt.Horizontal)
+            slider_frequenza.setMinimum(20)
+            slider_frequenza.setMaximum(2000)
+            slider_frequenza.valueChanged.connect(lambda val, idx=i: self.aggiorna_frequenza(idx, val))
+            layout.addWidget(slider_frequenza)
 
-            volume_slider = QSlider(Qt.Horizontal)  # Slider per il volume
-            volume_slider.setMinimum(0)
-            volume_slider.setMaximum(10)
-            volume_slider.valueChanged.connect(lambda val, idx=i: self.update_volume(idx, val))
-            layout.addWidget(volume_slider)
+            # Slider per il volume
+            slider_volume = QSlider(Qt.Horizontal)
+            slider_volume.setMinimum(0)
+            slider_volume.setMaximum(10)
+            slider_volume.valueChanged.connect(lambda val, idx=i: self.aggiorna_volume(idx, val))
+            layout.addWidget(slider_volume)
 
-            waveform_combo = QComboBox()  # ComboBox per selezionare la forma d'onda
-            waveform_combo.addItems(['Sine', 'Square', 'Triangle', 'Sawtooth', 'Random'])
-            waveform_combo.currentIndexChanged.connect(lambda combo_idx, idx=i: self.change_waveform(idx, combo_idx))
-            layout.addWidget(waveform_combo)
+            # ComboBox per selezionare la forma d'onda
+            combo_forma = QComboBox()
+            combo_forma.addItems(['Seno', 'Quadrata', 'Triangolare', 'Dente di sega', 'Casuale'])
+            combo_forma.currentIndexChanged.connect(lambda indice, idx=i: self.cambia_forma_onda(idx, indice))
+            layout.addWidget(combo_forma)
 
-            start_button = QPushButton('Start')  # Pulsante per avviare la riproduzione
-            start_button.clicked.connect(lambda state, idx=i: self.start_audio_generation(idx))
-            layout.addWidget(start_button)
+            pulsante_avvia = QPushButton("Avvia")
+            pulsante_avvia.clicked.connect(lambda stato, idx=i: self.avvia_generazione_audio(idx))
+            layout.addWidget(pulsante_avvia)
 
-            stop_button = QPushButton('Stop')  # Pulsante per fermare la riproduzione
-            stop_button.clicked.connect(lambda state, idx=i: self.stop_audio_generation(idx))
-            layout.addWidget(stop_button)
+            pulsante_ferma = QPushButton("Ferma")
+            pulsante_ferma.clicked.connect(lambda stato, idx=i: self.ferma_generazione_audio(idx))
+            layout.addWidget(pulsante_ferma)
 
-            reset_button = QPushButton('Reset')  # Pulsante per ripristinare le impostazioni predefinite
-            reset_button.clicked.connect(lambda state, idx=i: self.reset_settings(idx))
-            layout.addWidget(reset_button)
+            pulsante_ripristina = QPushButton("Ripristina")
+            pulsante_ripristina.clicked.connect(lambda stato, idx=i: self.ripristina_impostazioni(idx))
+            layout.addWidget(pulsante_ripristina)
 
-            save_button = QPushButton('Save')  # Pulsante per salvare l'audio generato
-            save_button.clicked.connect(lambda state, idx=i: self.save_audio(idx))
-            layout.addWidget(save_button)
+            pulsante_salva = QPushButton("Salva")
+            pulsante_salva.clicked.connect(lambda stato, idx=i: self.salva_audio(idx))
+            layout.addWidget(pulsante_salva)
 
         self.show()
 
     # Avvia la riproduzione dell'audio per un generatore specifico
-    def start_audio_generation(self, idx):
-        generator = self.generators[idx]
-        generator.start()
-        generator.status_label.setText(f'Generatore {idx + 1}: IS START')
+    def avvia_generazione_audio(self, idx):
+        generatore = self.generatori[idx]
+        generatore.avvia()
+        generatore.status_label.setText(f"Generatore {idx+1}: AVVIATO")
 
     # Ferma la riproduzione dell'audio per un generatore specifico
-    def stop_audio_generation(self, idx):
-        generator = self.generators[idx]
-        generator.stop()
-        generator.status_label.setText(f'Generatore {idx + 1}: STOP')
+    def ferma_generazione_audio(self, idx):
+        generatore = self.generatori[idx]
+        generatore.ferma()
+        generatore.status_label.setText(f"Generatore {idx+1}: FERMO")
 
     # Ripristina le impostazioni predefinite per un generatore specifico
-    def reset_settings(self, idx):
-        generator = self.generators[idx]
-        generator.frequency = 440.0
-        generator.volume = 0.5
-        generator.waveform = 'Sine'
-        generator.status_label.setText(f'Generatore {idx + 1}: STOP')
+    def ripristina_impostazioni(self, idx):
+        generatore = self.generatori[idx]
+        generatore.frequenza = 440.0
+        generatore.volume = 0.5
+        generatore.forma_onda = 'Seno'
+        generatore.status_label.setText(f"Generatore {idx+1}: FERMO")
 
     # Salva l'audio generato in un file WAV per un generatore specifico
-    def save_audio(self, idx):
-        generator = self.generators[idx]
-        wf = wave.open(f'audio_{idx}.wav', 'wb')
+    def salva_audio(self, idx):
+        generatore = self.generatori[idx]
+        wf = wave.open(f"audio_{idx}.wav", "wb")
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(44100)
-        wf.writeframes(generator.generate_audio(3))
+        dati_audio = generatore.genera_audio(3)
+        wf.writeframes(dati_audio)
         wf.close()
 
     # Aggiorna la frequenza per un generatore specifico
-    def update_frequency(self, idx, value):
-        generator = self.generators[idx]
-        generator.frequency = value
+    def aggiorna_frequenza(self, idx, valore):
+        generatore = self.generatori[idx]
+        generatore.frequenza = valore
 
     # Aggiorna il volume per un generatore specifico
-    def update_volume(self, idx, value):
-        generator = self.generators[idx]
-        generator.volume = value / 10
+    def aggiorna_volume(self, idx, valore):
+        generatore = self.generatori[idx]
+        generatore.volume = valore / 10
 
     # Cambia la forma d'onda per un generatore specifico
-    def change_waveform(self, idx, combo_idx):
-        generator = self.generators[idx]
-        if combo_idx == 0:
-            generator.waveform = 'Sine'
-        elif combo_idx == 1:
-            generator.waveform = 'Square'
-        elif combo_idx == 2:
-            generator.waveform = 'Triangle'
-        elif combo_idx == 3:
-            generator.waveform = 'Sawtooth'
+    def cambia_forma_onda(self, idx, indice):
+        generatore = self.generatori[idx]
+        if indice == 0:
+            generatore.forma_onda = 'Seno'
+        elif indice == 1:
+            generatore.forma_onda = 'Quadrata'
+        elif indice == 2:
+            generatore.forma_onda = 'Triangolare'
+        elif indice == 3:
+            generatore.forma_onda = 'Dente di sega'
         else:
-            generator.waveform = 'Random'
+            generatore.forma_onda = 'Casuale'
 
 # Funzione principale per avviare l'applicazione
 def main():
     app = QApplication(sys.argv)
-    main_win = AudioGeneratorApp()
+    finestra = AppGeneratoreAudio()
     sys.exit(app.exec_())
 
-# Punto di ingresso dell'app
+# Punto d'ingresso dell'applicazione
 if __name__ == '__main__':
     main()
