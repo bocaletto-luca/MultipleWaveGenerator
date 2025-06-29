@@ -35,3 +35,11 @@ Multiple Wave Generator is a versatile audio generation software that allows you
 Triple Multiple Wave Generator is open-source software released under the GNU General Public License (GPLv3). Feel free to modify and distribute it according to the terms of the license.
 
 Happy audio generation!
+
+---
+
+**Maintainer Update**
+
+All legacy projects from the old `@Elektronoide` GitHub account are now officially maintained by **@bocaletto-luca**. Please direct any issues, pull requests, and stars to **@bocaletto-luca** for all future updates.
+
+---
